@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ماشین‌حساب</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #18181b;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, sans-serif;
+    padding: 16px;
+  }
+
+  .calculator {
+    width: 100%;
+    max-width: 340px;
+    background: #27272a;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .display-wrap {
+    padding: 16px 8px 0;
+    margin-bottom: 12px;
+    text-align: right;
+  }
+
+  .expression {
+    font-family: "Courier New", monospace;
+    font-size: 18px;
+    color: #a1a1aa;
+    min-height: 22px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .display {
+    font-family: "Courier New", monospace;
+    font-size: 48px;
+    color: #fbbf24;
+    text-shadow: 0 0 12px rgba(251,191,36,0.35);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  button {
+    height: 64px;
+    border: none;
+    border-radius: 32px;
+    font-size: 24px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  button:active { transform: scale(0.95); }
+
+  .digit { background: #3f3f46; color: #fafafa; }
+  .digit:hover { background: #52525b; }
+
+  .op { background: #f59e0b; color: #18181b; font-weight: 600; }
+  .op:hover { background: #fbbf24; }
+
+  .func { background: #71717a; color: #18181b; }
+  .func:hover { background: #a1a1aa; }
+
+  .zero { grid-column: span 2; padding-left: 28px; text-align: left; }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display-wrap">
+    <div class="expression" id="expression">&nbsp;</div>
+    <div class="display" id="display">0</div>
+  </div>
+
+  <div class="buttons">
+    <button class="func" onclick="clearAll()">AC</button>
+    <button class="func" onclick="toggleSign()">+/−</button>
+    <button class="func" onclick="inputPercent()">%</button>
+    <button class="op" onclick="performOperation('÷')">÷</button>
+
+    <button class="digit" onclick="inputDigit(7)">7</button>
+    <button class="digit" onclick="inputDigit(8)">8</button>
+    <button class="digit" onclick="inputDigit(9)">9</button>
+    <button class="op" onclick="performOperation('×')">×</button>
+
+    <button class="digit" onclick="inputDigit(4)">4</button>
+    <button class="digit" onclick="inputDigit(5)">5</button>
+    <button class="digit" onclick="inputDigit(6)">6</button>
+    <button class="op" onclick="performOperation('−')">−</button>
+
+    <button class="digit" onclick="inputDigit(1)">1</button>
+    <button class="digit" onclick="inputDigit(2)">2</button>
+    <button class="digit" onclick="inputDigit(3)">3</button>
+    <button class="op" onclick="performOperation('+')">+</button>
+
+    <button class="digit zero" onclick="inputDigit(0)">0</button>
+    <button class="digit" onclick="inputDecimal()">.</button>
+    <button class="op" onclick="handleEquals()">=</button>
+  </div>
+</div>
+
+<script>
+  // وضعیت برنامه (state)
+  let display = "0";
+  let prevValue = null;
+  let operator = null;
+  let waitingForNewValue = false;
+
+  const displayEl = document.getElementById("display");
+  const expressionEl = document.getElementById("expression");
+
+  // لرزش کوتاه با هر ضربه روی دکمه‌ها
+  function vibrate() {
+    if (navigator.vibrate) {
+      navigator.vibrate(10); // ۱۰ میلی‌ثانیه، لرزش خیلی کوتاه
+    }
+  }
+  document.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", vibrate);
+  });
+
+  function updateDisplay() {
+    displayEl.textContent = display;
+    displayEl.style.fontSize = display.length > 8 ? "32px" : "48px";
+
+    // نمایش کامل مراحل، مثلا "5 ×" یا "5 × 3"
+    if (operator && prevValue !== null) {
+      const current = waitingForNewValue ? "" : display;
+      expressionEl.textContent = `${trimResult(prevValue)} ${operator} ${current}`;
+    } else {
+      expressionEl.innerHTML = "&nbsp;";
+    }
+  }
+
+  function inputDigit(digit) {
+    if (waitingForNewValue) {
+      display = String(digit);
+      waitingForNewValue = false;
+    } else {
+      display = display === "0" ? String(digit) : display + digit;
+    }
+    updateDisplay();
+  }
+
+  function inputDecimal() {
+    if (waitingForNewValue) {
+      display = "0.";
+      waitingForNewValue = false;
+      updateDisplay();
+      return;
+    }
+    if (!display.includes(".")) {
+      display += ".";
+      updateDisplay();
+    }
+  }
+
+  function clearAll() {
+    display = "0";
+    prevValue = null;
+    operator = null;
+    waitingForNewValue = false;
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    display = String(parseFloat(display) * -1);
+    updateDisplay();
+  }
+
+  function inputPercent() {
+    display = String(parseFloat(display) / 100);
+    updateDisplay();
+  }
+
+  function trimResult(num) {
+    // جلوگیری از خطاهای اعشاری مثل 0.30000000000000004
+    return Math.round(num * 1e10) / 1e10;
+  }
+
+  function calculate(a, b, op) {
+    switch (op) {
+      case "+": return a + b;
+      case "−": return a - b;
+      case "×": return a * b;
+      case "÷": return b === 0 ? NaN : a / b;
+      default: return b;
+    }
+  }
+
+  function performOperation(nextOperator) {
+    const inputValue = parseFloat(display);
+
+    if (prevValue === null) {
+      prevValue = inputValue;
+    } else if (operator && !waitingForNewValue) {
+      const result = calculate(prevValue, inputValue, operator);
+      display = Number.isNaN(result) ? "خطا" : String(trimResult(result));
+      prevValue = Number.isNaN(result) ? null : result;
+    }
+
+    waitingForNewValue = true;
+    operator = nextOperator;
+    updateDisplay();
+  }
+
+  function handleEquals() {
+    const inputValue = parseFloat(display);
+    if (operator === null || prevValue === null) return;
+
+    const result = calculate(prevValue, inputValue, operator);
+    display = Number.isNaN(result) ? "خطا" : String(trimResult(result));
+    prevValue = null;
+    operator = null;
+    waitingForNewValue = true;
+    updateDisplay();
+  }
+</script>
+
+</body>
+</html>
