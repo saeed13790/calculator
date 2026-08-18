@@ -6,6 +6,7 @@
 <title>ماشین‌حساب</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#18181b">
+<!-- theme is dark background with green accents now -->
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -46,8 +47,8 @@
   .display {
     font-family: "Courier New", monospace;
     font-size: 48px;
-    color: #fbbf24;
-    text-shadow: 0 0 12px rgba(251,191,36,0.35);
+    color: #4ade80;
+    text-shadow: 0 0 12px rgba(74,222,128,0.35);
     overflow-x: auto;
     white-space: nowrap;
   }
@@ -73,8 +74,8 @@
   .digit { background: #3f3f46; color: #fafafa; }
   .digit:hover { background: #52525b; }
 
-  .op { background: #f59e0b; color: #18181b; font-weight: 600; }
-  .op:hover { background: #fbbf24; }
+  .op { background: #22c55e; color: #18181b; font-weight: 600; }
+  .op:hover { background: #4ade80; }
 
   .func { background: #71717a; color: #18181b; }
   .func:hover { background: #a1a1aa; }
@@ -232,6 +233,15 @@
     operator = null;
     waitingForNewValue = true;
     updateDisplay();
+  }
+
+  // ثبت Service Worker برای کارکرد آفلاین
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => {
+        console.log("Service worker registration failed:", err);
+      });
+    });
   }
 </script>
 
